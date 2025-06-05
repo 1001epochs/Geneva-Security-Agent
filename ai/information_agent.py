@@ -68,7 +68,6 @@ def info_agent(history):
 
     response = gpt_call(messages, tools, model="gpt-4o", temperature=0.7)
     # sample response 
-# GPT Response: ChatCompletion(id='chatcmpl-Bf4KxAg0LcMj5lcJt2C7xfxo8IKrS', choices=[Choice(finish_reason='tool_calls', index=0, logprobs=None, message=ChatCompletionMessage(content=None, refusal=None, role='assistant', audio=None, function_call=None, tool_calls=[ChatCompletionMessageToolCall(id='call_PdTawnvSLvrFe6kz4LYQGDib', function=Function(arguments='{"chat_response":"Thank you for reaching out. To help us assist you better, could you please provide more details about the incident? Specifically, we need the date, time, and location of the incident, the individuals involved, and a detailed description of what happened.","next_step":"info"}', name='info_agent'), type='function')], annotations=[]))], created=1749127819, model='gpt-4o-2024-08-06', object='chat.completion', service_tier='default', system_fingerprint='fp_a288987b44', usage=CompletionUsage(completion_tokens=68, prompt_tokens=401, total_tokens=469, completion_tokens_details=CompletionTokensDetails(accepted_prediction_tokens=0, audio_tokens=0, reasoning_tokens=0, rejected_prediction_tokens=0), prompt_tokens_details=PromptTokensDetails(audio_tokens=0, cached_tokens=0)))
     response = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
     chat_response = response["chat_response"]
     next_step = response["next_step"]

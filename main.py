@@ -54,21 +54,20 @@ else:
     if not st.session_state.report_generating:
         # Chat input
         user_input = st.chat_input("Provide more details:")
+        # handle user input
+        if user_input:
+            st.session_state.chat_history.append({"role": "user", "content": user_input})
+            
+            # Ai response
+            agent_response = info_agent(st.session_state.chat_history)
+            st.session_state.chat_history.append(
+                {"role": "assistant", "content": agent_response['chat_response']}
+            )
+            if agent_response['next_step'] == "report":
+                st.info("Report is being generated.")
+                st.session_state.report_generating = True
+                #  report_agent()
+                # violation_agent()
 
-    # handle user input
-    if user_input:
-        st.session_state.chat_history.append({"role": "user", "content": user_input})
-        
-        # Ai response
-        agent_response = info_agent(st.session_state.chat_history)
-        st.session_state.chat_history.append(
-            {"role": "assistant", "content": agent_response['chat_response']}
-        )
-        if agent_response['next_step'] == "report":
-            st.info("Report is being generated.")
-            st.session_state.report_generating = True
-            #  report_agent()
-            # violation_agent()
 
-
-        st.rerun()
+            st.rerun()
