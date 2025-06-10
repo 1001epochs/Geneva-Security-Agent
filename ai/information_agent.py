@@ -1,4 +1,4 @@
-from ai.gpt import gpt_call
+from ai.gpt import gpt_tool_call
 import json
 
 def info_agent(history):
@@ -66,7 +66,7 @@ def info_agent(history):
         }
     ]
 
-    response = gpt_call(messages, tools, model="gpt-4o", temperature=0.7)
+    response = gpt_tool_call(messages, tools, model="gpt-4o", temperature=0.7)
     # sample response 
     response = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
     chat_response = response["chat_response"]
