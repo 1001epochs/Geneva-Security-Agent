@@ -11,6 +11,10 @@
 
 import streamlit as st
 from ai.information_agent import info_agent
+from ai.report_agent import report_agent
+from ai.violation_agent import violation_agent
+import base64
+import tempfile             
 
 st.title("Submit Security Incident Report")
 
@@ -51,7 +55,51 @@ else:
             with st.chat_message("assistant"):
                 st.write(f"**AI Agent:** {message['content']}")
 
-    if not st.session_state.report_generating:
+    if st.session_state.report_generating:
+        # Generate and display report
+        with st.spinner("Generating report and legal analysis..."):
+            report_data = report_agent(st.session_state.chat_history)
+            violation_analysis = violation_agent("\n".join(
+                [msg["content"] for msg in st.session_state.chat_history if msg["role"] == "user"]
+            ))
+            
+            st.session_state.report_data = report_data
+            st.session_state.violation_analysis = violation_analysis
+            
+        st.success("Report generated successfully!")
+        
+        # Display report content
+        st.subheader("Incident Report")
+        st.markdown(report_data["report_content"])
+        
+        # Display violation analysis
+        st.subheader("Legal Analysis")
+        st.markdown(violation_analysis)
+        
+        # Download buttons
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # PDF download
+            with open(report_data["pdf_path"], "rb") as f:
+                pdf_data = f.read()
+            st.download_button(
+                label="Download PDF Report",
+                data=pdf_data,
+                file_name="security_incident_report.pdf",
+                mime="application/pdf"
+            )
+        
+        with col2:
+            # HTML download
+            st.download_button(
+                label="Download HTML Report",
+                data=report_data["html_content"],
+                file_name="security_incident_report.html",
+                mime="text/html"
+            )
+        
+    elif not st.session_state.report_generating:
         # Chat input
         user_input = st.chat_input("Provide more details:")
         # handle user input
@@ -64,10 +112,5 @@ else:
                 {"role": "assistant", "content": agent_response['chat_response']}
             )
             if agent_response['next_step'] == "report":
-                st.info("Report is being generated.")
                 st.session_state.report_generating = True
-                #  report_agent()
-                # violation_agent()
-
-
-            st.rerun()
+                st.rerun()

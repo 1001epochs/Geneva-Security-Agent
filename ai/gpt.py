@@ -1,6 +1,13 @@
 import openai
+import os
+from dotenv import load_dotenv
 
-# openai.api_key = "add key"
+# Load environment variables from .env file
+load_dotenv()
+
+# Configure OpenAI API
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 def gpt_tool_call(messages, tools, model="gpt-4o", temperature=0.7):
     """
@@ -37,7 +44,6 @@ def gpt_call(messages, model="gpt-4o", temperature=0.7):
     Returns:
         The response from the model.
     """
-
     response = openai.chat.completions.create(
         model=model,
         messages=messages,
