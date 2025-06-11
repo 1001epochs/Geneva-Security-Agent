@@ -72,24 +72,25 @@ def report_agent(chat_history):
     pdf_path = create_pdf(report_content)
     
     # Create HTML version
-    html_content = f"""
-    <html>
-        <head>
-            <title>Security Incident Report</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
-                h1 {{ color: #2c3e50; }}
-                h2 {{ color: #34495e; margin-top: 20px; }}
-                .section {{ margin-bottom: 15px; }}
-            </style>
-        </head>
-        <body>
-            <h1>Security Incident Report</h1>
-            <div>{report_content.replace('\n', '<br>')}</div>
-            <p>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-        </body>
-    </html>
-    """
+    html_report_content = report_content.replace('\n', '<br>')
+    html_content = (
+        "<html>"
+        "<head>"
+        "<title>Security Incident Report</title>"
+        "<style>"
+        "body { font-family: Arial, sans-serif; line-height: 1.6; }"
+        "h1 { color: #2c3e50; }"
+        "h2 { color: #34495e; margin-top: 20px; }"
+        ".section { margin-bottom: 15px; }"
+        "</style>"
+        "</head>"
+        "<body>"
+        "<h1>Security Incident Report</h1>"
+        f"<div>{html_report_content}</div>"
+        f"<p>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>"
+        "</body>"
+        "</html>"
+    )
     
     return {
         "report_content": report_content,

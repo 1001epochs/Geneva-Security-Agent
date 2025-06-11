@@ -111,6 +111,8 @@ else:
             st.session_state.chat_history.append(
                 {"role": "assistant", "content": agent_response['chat_response']}
             )
+
             if agent_response['next_step'] == "report":
                 st.session_state.report_generating = True
-                st.rerun()
+
+            st.rerun()
