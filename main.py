@@ -6,6 +6,7 @@ from ai.violation_agent import violation_agent
 import tempfile
 import os
 from audio_recorder_streamlit import audio_recorder
+import time
 
 # Initialize session state more robustly
 def init_session_state():
@@ -88,8 +89,8 @@ if not st.session_state.report_init:
                 voice_text = process_voice_input(audio_bytes)
                 if voice_text:
                     report = voice_text
-                    st.session_state.voice_processed = True
-                    st.rerun()
+                    st.session_state.last_voice_input = voice_text
+                    st.session_state.voice_processed = True    
     
     submit_button = st.button("Submit Report")
     if (submit_button and report.strip()) or st.session_state.voice_processed:
@@ -98,7 +99,7 @@ if not st.session_state.report_init:
         st.session_state.chat_history.append({"role": "user", "content": st.session_state.report})
         st.session_state.chat_history.append({
             "role": "assistant", 
-            "content": "Thank you for your report. Please provide more details about:"
+            "content": "Thank you for your report. Please provide more details about the incident, like the date, time, location, and people involved."
         })
         st.session_state.voice_processed = False
         st.rerun()
@@ -108,13 +109,14 @@ else:
     st.success("Report process initiated. Please provide additional details.")
     
     # Display chat history
-    for message in st.session_state.chat_history:
-        if message["role"] == "user":
-            with st.chat_message("user"):
-                st.write(message["content"])
-        else:
-            with st.chat_message("assistant"):
-                st.write(message["content"])
+    st.subheader("Chat Session")
+    chat = st.container()
+    with chat:
+        for msg in st.session_state.chat_history:
+            if msg["role"] == "user":
+                st.chat_message("user").write(msg["content"])
+            else:
+                st.chat_message("assistant").write(msg["content"])
 
     # Report generation phase
     if st.session_state.report_generating:
@@ -172,17 +174,26 @@ else:
                 with st.spinner("Processing voice input..."):
                     voice_text = process_voice_input(audio_bytes)
                     if voice_text:
-                        user_input = voice_text
+                        st.session_state.last_voice_input = voice_text
                         st.session_state.voice_processed = True
-                        st.rerun()
         
         # Process any type of input
-        if user_input or st.session_state.voice_processed:
+        if user_input or audio_bytes:
             if st.session_state.voice_processed:
-                user_input = st.session_state.last_voice_input
                 st.session_state.voice_processed = False
-            
-            st.session_state.chat_history.append({"role": "user", "content": user_input})
+                st.session_state.chat_history.append({
+                    "role": "user", 
+                    "content": st.session_state.last_voice_input
+                })
+                audio_bytes = None  # Clear audio bytes after processing
+                # Display user input in chat
+                with chat:
+                    st.chat_message("user").write(st.session_state.last_voice_input)
+            else:
+                st.session_state.chat_history.append({"role": "user", "content": user_input})
+                # Display user input in chat
+                with chat:
+                    st.chat_message("user").write(user_input)
             
             # Get AI response
             agent_response = info_agent(st.session_state.chat_history)
@@ -190,8 +201,10 @@ else:
                 "role": "assistant", 
                 "content": agent_response['chat_response']
             })
+            # update ui after response
+            with chat:
+                st.chat_message("assistant").write(agent_response['chat_response'])
 
             if agent_response['next_step'] == "report":
                 st.session_state.report_generating = True
 
-            st.rerun()
