@@ -7,6 +7,8 @@ import tempfile
 import os
 from audio_recorder_streamlit import audio_recorder
 import time
+from gtts import gTTS
+import base64
 
 # Initialize session state more robustly
 def init_session_state():
@@ -20,8 +22,36 @@ def init_session_state():
         st.session_state.voice_processed = False
     if "last_voice_input" not in st.session_state:
         st.session_state.last_voice_input = ""
+    if "audio_auto_play" not in st.session_state:
+        st.session_state.audio_auto_play = True
 
 init_session_state()
+
+# Function to convert text to speech and return audio data
+def text_to_speech(text, lang='en'):
+    try:
+        tts = gTTS(text=text, lang=lang, slow=False)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+            tts.save(fp.name)
+            return fp.name
+    except Exception as e:
+        st.error(f"Error in text-to-speech conversion: {e}")
+        return None
+
+# Function to autoplay audio in Streamlit
+def autoplay_audio(file_path):
+    with open(file_path, "rb") as f:
+        data = f.read()
+        b64 = base64.b64encode(data).decode()
+        md = f"""
+            <audio controls autoplay="true">
+            <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+            </audio>
+            """
+        st.markdown(
+            md,
+            unsafe_allow_html=True,
+        )
 
 # Improved voice processing function
 def process_voice_input(audio_bytes):
@@ -60,6 +90,13 @@ def process_voice_input(audio_bytes):
 # Main app interface
 st.title("Security Incident Reporter")
 
+# Toggle for auto-play audio
+st.session_state.audio_auto_play = st.sidebar.checkbox(
+    "Enable Voice Responses", 
+    value=st.session_state.audio_auto_play,
+    help="When enabled, the assistant's responses will be read aloud"
+)
+
 # Initial report submission
 if not st.session_state.report_init:
     st.subheader("Report a Security Incident")
@@ -97,10 +134,19 @@ if not st.session_state.report_init:
         st.session_state.report = report if report else st.session_state.last_voice_input
         st.session_state.report_init = True
         st.session_state.chat_history.append({"role": "user", "content": st.session_state.report})
+        initial_response = "Thank you for your report. Please provide more details about the incident, like the date, time, location, and people involved."
         st.session_state.chat_history.append({
             "role": "assistant", 
-            "content": "Thank you for your report. Please provide more details about the incident, like the date, time, location, and people involved."
+            "content": initial_response
         })
+        
+        # Convert initial response to speech if enabled
+        if st.session_state.audio_auto_play:
+            audio_file = text_to_speech(initial_response)
+            if audio_file:
+                autoplay_audio(audio_file)
+                os.unlink(audio_file)  # Clean up temporary file
+        
         st.session_state.voice_processed = False
         st.rerun()
 
@@ -134,6 +180,14 @@ else:
         
         st.subheader("Legal Analysis")
         st.markdown(violation_analysis)
+        
+        # Convert report summary to speech if enabled
+        if st.session_state.audio_auto_play:
+            summary = f"Report generated successfully. Here's the summary: {report_data['report_content'][:500]}"
+            audio_file = text_to_speech(summary)
+            if audio_file:
+                autoplay_audio(audio_file)
+                os.unlink(audio_file)  # Clean up temporary file
         
         col1, col2 = st.columns(2)
         with col1:
@@ -178,7 +232,7 @@ else:
                         st.session_state.voice_processed = True
         
         # Process any type of input
-        if user_input or audio_bytes:
+        if user_input or (audio_bytes and st.session_state.voice_processed):
             if st.session_state.voice_processed:
                 st.session_state.voice_processed = False
                 st.session_state.chat_history.append({
@@ -201,10 +255,18 @@ else:
                 "role": "assistant", 
                 "content": agent_response['chat_response']
             })
-            # update ui after response
+            
+            # Display and speak the AI response
             with chat:
                 st.chat_message("assistant").write(agent_response['chat_response'])
+            
+            # Convert response to speech if enabled
+            if st.session_state.audio_auto_play:
+                audio_file = text_to_speech(agent_response['chat_response'])
+                if audio_file:
+                    autoplay_audio(audio_file)
+                    os.unlink(audio_file)  # Clean up temporary file
 
             if agent_response['next_step'] == "report":
                 st.session_state.report_generating = True
-
+                st.rerun()
